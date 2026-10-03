@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from app.models.user import User
 
-from sqlalchemy import DateTime, String, ForeignKey, func, Text
+from sqlalchemy import DateTime, String, ForeignKey, func, Text, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -45,6 +45,23 @@ class BookRequest(Base):
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False,
+    )
+
+    __table_args__ = (
+        Index("ix_book_requests_owner_id_created_at", "owner_id", created_at.desc()),
+        Index("ix_book_requests_created_at", created_at.desc()),
+        Index(
+            "ix_book_requests_title_trgm",
+            "title",
+            postgresql_using="gin",
+            postgresql_ops={"title": "gin_trgm_ops"},
+        ),
+        Index(
+            "ix_book_requests_author_trgm",
+            "author",
+            postgresql_using="gin",
+            postgresql_ops={"author": "gin_trgm_ops"},
+        ),
     )
 
     # Relationships

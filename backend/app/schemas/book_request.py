@@ -8,7 +8,7 @@ class BookRequestOwner(BaseModel):
     name: str = Field(..., alias="display_name")
     avatar_url: Optional[str] = None
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
 class BookRequestBase(BaseModel):
     title: str = Field(..., max_length=255)
