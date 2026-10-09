@@ -16,6 +16,7 @@ from app.db.base import Base
 from app.models.user import User  # noqa: F401
 from app.models.book import Book  # noqa: F401
 from app.models.book_request import BookRequest  # noqa: F401
+from app.models.order import Order  # noqa: F401
 
 config = context.config
 

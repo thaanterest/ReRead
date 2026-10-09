@@ -40,10 +40,20 @@ async def list_books(
     limit: int = Query(20, ge=1, le=100, description="Items per page"),
     status: Optional[str] = Query(None, description="Filter by status (e.g., Available)"),
     search: Optional[str] = Query(None, description="Search by title or author"),
+    listing_type: Optional[str] = Query(None, description="Filter by listing type (sell, exchange, both)"),
+    min_price: Optional[float] = Query(None, ge=0, description="Minimum price"),
+    max_price: Optional[float] = Query(None, ge=0, description="Maximum price"),
     db: AsyncSession = Depends(get_db),
 ) -> StandardResponse[PaginatedBooksResponse]:
     books, total = await get_books_paginated(
-        db, page=page, limit=limit, status=status, search=search
+        db,
+        page=page,
+        limit=limit,
+        status=status,
+        search=search,
+        listing_type=listing_type,
+        min_price=min_price,
+        max_price=max_price,
     )
     total_pages = math.ceil(total / limit) if total > 0 else 0
 

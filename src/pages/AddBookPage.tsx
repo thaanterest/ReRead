@@ -14,6 +14,8 @@ export default function AddBookPage() {
     condition: '',
     category: '',
     description: '',
+    listingType: 'both', // 'sell', 'exchange', 'both'
+    price: '',
     isRare: false,
   });
   const [submitted, setSubmitted] = useState(false);
@@ -36,6 +38,10 @@ export default function AddBookPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title || !form.author || !form.condition) return;
+    if ((form.listingType === 'sell' || form.listingType === 'both') && (!form.price || parseFloat(form.price) <= 0)) {
+      alert('กรุณากรอกราคาขายให้ถูกต้อง');
+      return;
+    }
     
     setIsSubmitting(true);
     try {
@@ -43,13 +49,17 @@ export default function AddBookPage() {
       if (form.category) tags.push(form.category);
       if (form.isRare) tags.push('หายาก / เลิกพิมพ์แล้ว');
       
+      const priceVal = form.listingType !== 'exchange' && form.price ? parseFloat(form.price) : undefined;
+
       const res = await apiCreateBook({
         title: form.title,
         author: form.author,
         condition: form.condition,
         description: form.description,
         tags: tags,
-        cover_url: previewUrl || undefined, // in real app, we'd upload image and get URL
+        listing_type: form.listingType,
+        price: priceVal,
+        cover_url: previewUrl || undefined,
       });
       
       if (res.success) {
@@ -125,6 +135,69 @@ export default function AddBookPage() {
               className="w-full bg-bg-main border border-border-main rounded-md px-4 py-3 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
               placeholder="เช่น Donna Tartt" />
           </div>
+        </div>
+
+        {/* Listing Type & Price */}
+        <div className="p-5 rounded-md border border-border-main bg-bg-secondary/40 flex flex-col gap-5">
+          <div>
+            <label className="text-sm font-medium block mb-2">
+              รูปแบบการส่งต่อ <span className="text-warning">*</span>
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { value: 'both', label: 'ขายหรือแลกเปลี่ยน', desc: 'เปิดรับทั้งคนซื้อและคนเสนอแลก' },
+                { value: 'sell', label: 'ขายอย่างเดียว', desc: 'ตั้งราคาขายหนังสือเล่มนี้' },
+                { value: 'exchange', label: 'แลกเปลี่ยนอย่างเดียว', desc: 'ส่งต่อเพื่อแลกหนังสือเล่มอื่น' },
+              ].map(item => (
+                <label
+                  key={item.value}
+                  className={`flex flex-col p-3 rounded-md border cursor-pointer transition-all ${
+                    form.listingType === item.value
+                      ? 'border-accent bg-bg-main shadow-sm'
+                      : 'border-border-main/60 bg-bg-main/50 hover:bg-bg-main'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <input
+                      type="radio"
+                      name="listingType"
+                      value={item.value}
+                      checked={form.listingType === item.value}
+                      onChange={handleChange}
+                      className="accent-accent"
+                    />
+                    <span className="font-heading text-sm font-medium">{item.label}</span>
+                  </div>
+                  <span className="text-[11px] text-text-main/60 leading-tight pl-5">{item.desc}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {form.listingType !== 'exchange' && (
+            <div className="flex flex-col gap-2 pt-3 border-t border-border-main/60">
+              <label className="text-sm font-medium">
+                ราคาขาย (บาท) <span className="text-warning">*</span>
+              </label>
+              <div className="relative max-w-xs">
+                <span className="absolute left-3.5 top-2.5 text-text-main/50 font-medium">฿</span>
+                <input
+                  type="number"
+                  name="price"
+                  min="1"
+                  step="1"
+                  value={form.price}
+                  onChange={handleChange}
+                  required={form.listingType !== 'exchange'}
+                  className="w-full bg-bg-main border border-border-main rounded-md pl-8 pr-4 py-2.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent font-heading text-lg"
+                  placeholder="เช่น 180"
+                />
+              </div>
+              <p className="text-xs text-text-main/60">
+                ราคานี้ไม่รวมค่าจัดส่งมาตรฐาน 40 บาท (ผู้ซื้อจะเป็นผู้รับผิดชอบค่าจัดส่ง)
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

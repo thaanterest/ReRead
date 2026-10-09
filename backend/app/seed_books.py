@@ -7,6 +7,8 @@ import uuid
 from app.db.session import _get_session_factory
 from app.models.user import User
 from app.models.book import Book
+from app.models.book_request import BookRequest
+from app.models.order import Order
 from app.core.security import hash_password
 from sqlalchemy import select
 
@@ -74,8 +76,20 @@ async def seed():
     async with factory() as session:
         # Check if already seeded
         result = await session.execute(select(Book))
-        if result.scalars().first():
-            print("⚠️  Books already exist in DB. Skipping seed.")
+        existing_books = list(result.scalars().all())
+        if existing_books:
+            needs_update = any(b.price is None for b in existing_books)
+            if needs_update:
+                for i, b in enumerate(existing_books):
+                    if b.price is None:
+                        listing_types = ["both", "sell", "both", "exchange"]
+                        b.listing_type = listing_types[i % len(listing_types)]
+                        if b.listing_type != "exchange":
+                            b.price = float(120 + (i % 6) * 35)
+                await session.commit()
+                print(f"✅ Updated {len(existing_books)} existing books with sample prices and listing types!")
+                return
+            print("⚠️  Books already exist in DB with prices. Skipping seed.")
             return
 
         # Create mock users
@@ -99,6 +113,10 @@ async def seed():
         # Create books - distribute among users
         for i, b in enumerate(MOCK_BOOKS):
             owner_id = user_ids[i % len(user_ids)]
+            listing_types = ["both", "sell", "both", "exchange"]
+            l_type = listing_types[i % len(listing_types)]
+            sample_price = float(120 + (i % 6) * 35) if l_type != "exchange" else None
+
             book = Book(
                 title=b["title"],
                 author=b["author"],
@@ -107,6 +125,8 @@ async def seed():
                 description=b["description"],
                 tags=b["tags"],
                 status=b["status"],
+                listing_type=l_type,
+                price=sample_price,
                 owner_id=owner_id,
             )
             session.add(book)

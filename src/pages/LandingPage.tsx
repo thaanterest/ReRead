@@ -20,9 +20,14 @@ export default function LandingPage() {
             เราได้ช่วยส่งต่อหนังสือที่รักไปแล้วกว่า <span className="font-semibold text-text-main">45,000 เล่ม</span> ตั้งแต่เริ่มก่อตั้ง
           </div>
 
-          <Link to="/browse" className="bg-accent text-bg-main px-8 py-4 rounded-md font-medium text-lg hover:bg-accent/90 transition-colors flex items-center gap-3">
-            ค้นหาหนังสือ <ArrowRight className="w-5 h-5" />
-          </Link>
+          <div className="flex flex-wrap items-center gap-4">
+            <Link to="/browse" className="bg-accent text-bg-main px-6 py-3.5 rounded-md font-medium text-base hover:bg-accent/90 transition-colors flex items-center gap-2">
+              ค้นหาหนังสือแลก <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link to="/marketplace" className="border border-border-main bg-bg-main text-text-main px-6 py-3.5 rounded-md font-medium text-base hover:border-accent hover:text-accent transition-colors flex items-center gap-2">
+              หนังสือมือสอง <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
         </div>
 
         <div className="md:col-span-6 lg:col-span-7 relative h-[400px] sm:h-[500px] lg:h-[600px] w-full mt-10 md:mt-0">

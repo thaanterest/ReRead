@@ -16,6 +16,8 @@ class BookBase(BaseModel):
     description: str | None = Field(None)
     tags: list[str] = Field(default_factory=list)
     status: str = Field(default="Available", max_length=50)
+    listing_type: str = Field(default="both", max_length=20)
+    price: float | None = Field(default=None, ge=0)
 
 class BookCreateRequest(BookBase):
     pass
@@ -28,6 +30,8 @@ class BookUpdateRequest(BaseModel):
     description: str | None = Field(None)
     tags: list[str] | None = None
     status: str | None = Field(None, max_length=50)
+    listing_type: str | None = Field(None, max_length=20)
+    price: float | None = Field(None, ge=0)
 
 class BookResponse(BookBase):
     id: uuid.UUID

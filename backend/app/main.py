@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.core.config import settings
-from app.routers import auth, users, books, book_requests
+from app.routers import auth, users, books, book_requests, orders
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -22,14 +22,23 @@ app = FastAPI(
 # ---------------------------------------------------------------------------
 origins = [
     "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:5175",
+    "http://localhost:5176",
+    "http://localhost:5177",
     "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+    "http://127.0.0.1:5175",
+    "http://127.0.0.1:5176",
     "https://re-read-three.vercel.app",
     "https://re-read-git-main-aphi.vercel.app",
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # หรือใช้ ["*"] เพื่ออนุญาตทุกโดเมนชั่วคราว
+    allow_origins=origins,
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -42,6 +51,7 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
 app.include_router(books.router, prefix="/api")
 app.include_router(book_requests.router, prefix="/api")
+app.include_router(orders.router, prefix="/api")
 
 
 # ---------------------------------------------------------------------------

@@ -8,8 +8,9 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from app.models.user import User
+    from app.models.order import Order
 
-from sqlalchemy import DateTime, String, ForeignKey, func, Text, Index
+from sqlalchemy import DateTime, String, ForeignKey, func, Text, Index, Numeric
 from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -31,12 +32,20 @@ class Book(Base):
     condition: Mapped[str] = mapped_column(String(50), nullable=False) # 'New', 'Like New', 'Good', 'Fair', 'Poor'
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     
+    # Selling and listing fields
+    listing_type: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="both", server_default="'both'"
+    ) # 'sell', 'exchange', 'both'
+    price: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True) # Price in THB
+    
     owner_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     
     tags: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=True, server_default="{}")
-    status: Mapped[str] = mapped_column(String(50), nullable=False, default="Available", server_default="'Available'") # 'Available', 'Pending', 'Swapped'
+    status: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="Available", server_default="'Available'"
+    ) # 'Available', 'Pending', 'Swapped', 'Sold'
     
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -64,6 +73,7 @@ class Book(Base):
     )
 
     owner: Mapped["User"] = relationship("User", back_populates="books", lazy="joined")
+    orders: Mapped[list["Order"]] = relationship("Order", back_populates="book", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<Book {self.title} ({self.id})>"

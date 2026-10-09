@@ -12,3 +12,6 @@ httpx==0.28.*
 pytest==8.*
 pytest-asyncio==0.25.*
 aiosqlite==0.21.*
+google-auth>=2.0.0
+requests>=2.31.0
+

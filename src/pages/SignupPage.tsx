@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Loader2, Check, X } from 'lucide-react';
+import { ArrowRight, Loader2, Check, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
+import type { CredentialResponse } from '@react-oauth/google';
 import { useAuth } from '../contexts/AuthContext';
 import { ApiError, apiCheckUsername } from '../services/api';
 
@@ -11,9 +13,41 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [showManualForm, setShowManualForm] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
-  const { register } = useAuth();
+
+  const { register, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
+
+  // Google OAuth Success Handler
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) {
+      setError('ไม่พบรหัสยืนยันตัวตนจาก Google กรุณาลองใหม่อีกครั้ง');
+      return;
+    }
+    setError('');
+    setIsGoogleLoading(true);
+
+    try {
+      await loginWithGoogle(credentialResponse.credential);
+      navigate('/');
+    } catch (err: any) {
+      let msg = 'สมัครสมาชิกด้วย Google ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง';
+      if (err instanceof ApiError) {
+        msg = err.message;
+      } else if (err?.message && typeof err.message === 'string') {
+        msg = err.message;
+      }
+      setError(msg);
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError('สมัครสมาชิกด้วย Google ล้มเหลวหรือถูกยกเลิก');
+  };
 
   // Check username availability with debounce
   const handleUsernameChange = async (value: string) => {
@@ -31,16 +65,45 @@ export default function SignupPage() {
     }
   };
 
+  // Real-time password requirement indicators
+  const hasMinLength = password.length >= 8;
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecialChar = /[^A-Za-z0-9]/.test(password);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username || !displayName || !email || !password) {
       setError('กรุณากรอกข้อมูลให้ครบถ้วนทุกช่อง');
       return;
     }
+
+    if (username.length < 3 || username.length > 50 || !/^[A-Za-z0-9_]+$/.test(username)) {
+      setError('Username ต้องมีความยาว 3-50 ตัวอักษร และใช้ได้เฉพาะตัวอักษรภาษาอังกฤษ ตัวเลข หรือ _ เท่านั้น');
+      return;
+    }
+
     if (usernameStatus === 'taken') {
       setError('Username นี้ถูกใช้แล้ว กรุณาเลือกชื่ออื่น');
       return;
     }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError('กรุณากรอกรูปแบบอีเมลให้ถูกต้อง (เช่น user@example.com)');
+      return;
+    }
+
+    const missingRules: string[] = [];
+    if (!hasMinLength) missingRules.push('ความยาวอย่างน้อย 8 ตัวอักษร');
+    if (!hasUppercase) missingRules.push('ตัวพิมพ์ใหญ่ (A-Z) อย่างน้อย 1 ตัว');
+    if (!hasNumber) missingRules.push('ตัวเลข (0-9) อย่างน้อย 1 ตัว');
+    if (!hasSpecialChar) missingRules.push('อักขระพิเศษอย่างน้อย 1 ตัว (เช่น !@#$%^&* หรือ _-)');
+
+    if (missingRules.length > 0) {
+      setError(`รหัสผ่านยังไม่ตรงตามเงื่อนไข: ขาด ${missingRules.join(', ')}`);
+      return;
+    }
+
     setError('');
     setIsSubmitting(true);
 
@@ -52,20 +115,24 @@ export default function SignupPage() {
         display_name: displayName,
       });
       navigate('/');
-    } catch (err) {
+    } catch (err: any) {
+      let msg = 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง';
       if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+        msg = err.message;
+      } else if (err?.message && typeof err.message === 'string') {
+        msg = err.message;
       }
+      if (msg === '[object Object]' || !msg) {
+        msg = 'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบเงื่อนไขรหัสผ่านและข้อมูลที่กรอก';
+      }
+      setError(msg);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex bg-bg-main font-sans">
-
+    <div className="min-h-screen flex bg-bg-main font-sans text-text-main">
       {/* Form Side */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 order-2 lg:order-1">
         <div className="w-full max-w-md">
@@ -84,109 +151,165 @@ export default function SignupPage() {
             </Link>
           </p>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">Username</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => handleUsernameChange(e.target.value)}
-                  className="w-full bg-bg-main border border-border-main rounded-md px-4 py-3 pr-10 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
-                  placeholder="ตัวอักษร ตัวเลข และ _ (3-50 ตัว)"
-                  disabled={isSubmitting}
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 text-warning text-sm font-medium bg-warning/10 px-3.5 py-2.5 rounded-lg border border-warning/20 flex items-start gap-2">
+              <span className="text-base leading-none mt-0.5 flex-shrink-0">⚠️</span>
+              <span className="flex-1 leading-relaxed">{error}</span>
+            </div>
+          )}
+
+          {/* Primary Action: Google Sign-Up */}
+          <div className="p-6 bg-white/60 border border-border-main rounded-xl shadow-xs flex flex-col items-center">
+            <div className="text-center mb-5">
+              <p className="text-base font-medium text-text-main">
+                สมัครสมาชิกสะดวกรวดเร็วด้วย Google
+              </p>
+              <p className="text-xs text-text-main/60 mt-1">
+                คลิกปุ่มด้านล่างเพื่อสร้างบัญชี ReRead และเข้าสู่ระบบทันทีในคลิกเดียว
+              </p>
+            </div>
+
+            {isGoogleLoading ? (
+              <div className="flex items-center gap-2.5 py-3 text-sm text-text-main/80 font-medium">
+                <Loader2 className="w-5 h-5 animate-spin text-accent" />
+                <span>กำลังสร้างบัญชีและเชื่อมต่อระบบ...</span>
+              </div>
+            ) : (
+              <div className="w-full flex justify-center">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  theme="outline"
+                  size="large"
+                  shape="rectangular"
+                  text="signup_with"
+                  width="100%"
                 />
-                {usernameStatus === 'available' && (
-                  <Check className="w-5 h-5 text-accent absolute right-3 top-1/2 -translate-y-1/2" />
-                )}
+
+              </div>
+            )}
+          </div>
+
+          {/* Toggle Button for Manual Form */}
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              onClick={() => setShowManualForm(!showManualForm)}
+              className="inline-flex items-center gap-1.5 text-xs text-text-main/60 hover:text-accent font-medium transition-colors cursor-pointer"
+            >
+              <span>{showManualForm ? 'ซ่อนฟอร์มสมัครสมาชิกทั่วไป' : 'หรือสมัครด้วยข้อมูลส่วนตัว (Username / รหัสผ่าน)'}</span>
+              {showManualForm ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+
+          {/* Collapsible Manual Form */}
+          {showManualForm && (
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-6 pt-6 border-t border-border-main/60 animate-in fade-in duration-200">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium">Username</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => handleUsernameChange(e.target.value)}
+                    className="w-full bg-bg-main border border-border-main rounded-md px-4 py-2.5 pr-10 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all text-sm"
+                    placeholder="ตัวอักษร ตัวเลข และ _ (3-50 ตัว)"
+                    disabled={isSubmitting}
+                  />
+                  {usernameStatus === 'available' && (
+                    <Check className="w-4 h-4 text-accent absolute right-3 top-1/2 -translate-y-1/2" />
+                  )}
+                  {usernameStatus === 'taken' && (
+                    <X className="w-4 h-4 text-warning absolute right-3 top-1/2 -translate-y-1/2" />
+                  )}
+                </div>
                 {usernameStatus === 'taken' && (
-                  <X className="w-5 h-5 text-warning absolute right-3 top-1/2 -translate-y-1/2" />
+                  <p className="text-warning text-xs">Username นี้ถูกใช้แล้ว</p>
+                )}
+                {usernameStatus === 'available' && (
+                  <p className="text-accent text-xs">Username นี้ใช้ได้!</p>
                 )}
               </div>
-              {usernameStatus === 'taken' && (
-                <p className="text-warning text-xs">Username นี้ถูกใช้แล้ว</p>
-              )}
-              {usernameStatus === 'available' && (
-                <p className="text-accent text-xs">Username นี้ใช้ได้!</p>
-              )}
-            </div>
 
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">ชื่อ-นามสกุล / นามปากกา</label>
-              <input
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full bg-bg-main border border-border-main rounded-md px-4 py-3 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
-                placeholder="ชื่อที่ใช้ในคอมมูนิตี้"
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium">ชื่อ-นามสกุล / นามปากกา</label>
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  className="w-full bg-bg-main border border-border-main rounded-md px-4 py-2.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all text-sm"
+                  placeholder="ชื่อที่ใช้ในคอมมูนิตี้"
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium">อีเมล</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-bg-main border border-border-main rounded-md px-4 py-2.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all text-sm"
+                  placeholder="hello@example.com"
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium">รหัสผ่าน</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (error) setError('');
+                  }}
+                  className="w-full bg-bg-main border border-border-main rounded-md px-4 py-2.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all text-sm"
+                  placeholder="อย่างน้อย 8 ตัว มีตัวพิมพ์ใหญ่ ตัวเลข และอักขระพิเศษ"
+                  disabled={isSubmitting}
+                />
+
+                {/* Password Requirements Checklist */}
+                <div className="bg-bg-secondary/40 p-2.5 rounded-md border border-border-main/50 space-y-1">
+                  <p className="text-xs font-medium text-text-main/70 mb-1">เงื่อนไขความปลอดภัยของรหัสผ่าน:</p>
+                  <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-xs">
+                    <div className={`flex items-center gap-1.5 transition-colors ${hasMinLength ? 'text-accent font-medium' : 'text-text-main/50'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${hasMinLength ? 'bg-accent' : 'bg-text-main/30'}`} />
+                      <span>อย่างน้อย 8 ตัวอักษร</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 transition-colors ${hasUppercase ? 'text-accent font-medium' : 'text-text-main/50'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${hasUppercase ? 'bg-accent' : 'bg-text-main/30'}`} />
+                      <span>มีตัวพิมพ์ใหญ่ (A-Z)</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 transition-colors ${hasNumber ? 'text-accent font-medium' : 'text-text-main/50'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${hasNumber ? 'bg-accent' : 'bg-text-main/30'}`} />
+                      <span>มีตัวเลข (0-9)</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 transition-colors ${hasSpecialChar ? 'text-accent font-medium' : 'text-text-main/50'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${hasSpecialChar ? 'bg-accent' : 'bg-text-main/30'}`} />
+                      <span>มีอักขระพิเศษ (!@#$%^&*)</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="submit"
                 disabled={isSubmitting}
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">อีเมล</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-bg-main border border-border-main rounded-md px-4 py-3 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
-                placeholder="hello@example.com"
-                disabled={isSubmitting}
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">รหัสผ่าน</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-bg-main border border-border-main rounded-md px-4 py-3 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
-                placeholder="อย่างน้อย 8 ตัว มีตัวพิมพ์ใหญ่ ตัวเลข และอักขระพิเศษ"
-                disabled={isSubmitting}
-              />
-              <p className="text-xs text-text-main/50">ต้องมีตัวพิมพ์ใหญ่ ตัวเลข และอักขระพิเศษอย่างน้อยอย่างละ 1 ตัว</p>
-            </div>
-
-            {error && (
-              <p className="text-warning text-sm font-medium bg-warning/10 px-3 py-2 rounded-md border border-warning/20">
-                {error}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full bg-accent text-bg-main py-3 rounded-md font-medium text-lg hover:bg-accent/90 transition-colors mt-2 flex items-center justify-center gap-2 disabled:opacity-60"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  กำลังสร้างบัญชี...
-                </>
-              ) : (
-                'สร้างบัญชีใหม่'
-              )}
-            </button>
-          </form>
-
-          <div className="flex items-center gap-4 my-8">
-            <div className="flex-1 h-px bg-border-main"></div>
-            <span className="text-xs text-text-main/50 uppercase tracking-widest font-medium">หรือสมัครด้วย</span>
-            <div className="flex-1 h-px bg-border-main"></div>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <button className="w-full flex items-center justify-center gap-3 bg-transparent border border-border-main text-text-main py-3 rounded-md font-medium hover:bg-bg-secondary transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-              </svg>
-              Google
-            </button>
-          </div>
+                className="w-full bg-accent text-bg-main py-2.5 rounded-md font-medium text-base hover:bg-accent/90 transition-colors mt-2 flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    กำลังสร้างบัญชี...
+                  </>
+                ) : (
+                  'สร้างบัญชีใหม่'
+                )}
+              </button>
+            </form>
+          )}
 
           <Link to="/" className="flex items-center justify-center gap-2 mt-8 text-sm text-text-main/60 hover:text-text-main transition-colors">
             <ArrowRight className="w-4 h-4 rotate-180" /> กลับสู่หน้าแรก
@@ -221,7 +344,6 @@ export default function SignupPage() {
           />
         </div>
       </div>
-
     </div>
   );
 }

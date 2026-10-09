@@ -31,6 +31,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-me-to-a-random-secret-key}
       JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
       JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-60}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-${VITE_GOOGLE_CLIENT_ID:-}}
     # Override CMD to enable --reload for development
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     depends_on:

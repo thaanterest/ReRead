@@ -11,9 +11,15 @@ export interface Book {
   owner: {
     name: string;
     avatarUrl: string;
+    id?: string;
   };
   tags: string[];
   status: BookStatus;
+  approvalStatus?: 'pending' | 'approved' | 'hidden';
+  createdAt?: string;
+  category?: string;
+  price?: number | null;
+  listing_type?: string;
 }
 
 export const MOCK_BOOKS: Book[] = [

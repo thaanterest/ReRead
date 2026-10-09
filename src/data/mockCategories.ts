@@ -1,0 +1,60 @@
+import type { AdminCategory } from '../types/admin';
+
+export const MOCK_ADMIN_CATEGORIES: AdminCategory[] = [
+  {
+    id: 'cat-1',
+    name: 'นิยาย / วรรณกรรม',
+    slug: 'fiction-literature',
+    description: 'นวนิยาย วรรณกรรมคลาสสิก วรรณกรรมแปล และเรื่องสั้นหลากหลายแนว',
+    bookCount: 18,
+    tags: ['Fiction', 'Classic', 'Literary', 'Dark Academia', 'Mystery'],
+  },
+  {
+    id: 'cat-2',
+    name: 'จิตวิทยา / พัฒนาตนเอง',
+    slug: 'self-help-psychology',
+    description: 'หนังสือจิตวิทยา พัฒนาความคิด นิสัย และการดำเนินชีวิต',
+    bookCount: 9,
+    tags: ['Self-Help', 'Psychology', 'Mindset', 'Productivity'],
+  },
+  {
+    id: 'cat-3',
+    name: 'ไซไฟ / แฟนตาซี',
+    slug: 'sci-fi-fantasy',
+    description: 'จินตนาการล้ำยุค ท่องอวกาศ โลกเวทมนตร์ และวรรณกรรมดิสโทเปีย',
+    bookCount: 7,
+    tags: ['Sci-Fi', 'Fantasy', 'Dystopian', 'Space Opera'],
+  },
+  {
+    id: 'cat-4',
+    name: 'สารคดี / ความรู้',
+    slug: 'non-fiction',
+    description: 'สารคดี วิทยาศาสตร์ สังคม วัฒนธรรม และสาระรอบตัว',
+    bookCount: 6,
+    tags: ['Non-Fiction', 'History', 'Science', 'Physics'],
+  },
+  {
+    id: 'cat-5',
+    name: 'ปรัชญา / จิตวิญญาณ',
+    slug: 'philosophy',
+    description: 'การตั้งคำถามต่อชีวิต ธรรมชาติของความจริง และข้อคิดทางจิตวิญญาณ',
+    bookCount: 4,
+    tags: ['Philosophy', 'Spirituality', 'Ethics', 'Stoicism'],
+  },
+  {
+    id: 'cat-6',
+    name: 'รักโรแมนซ์',
+    slug: 'romance',
+    description: 'เรื่องราวความรัก ความสัมพันธ์อันอบอุ่นและลึกซึ้ง',
+    bookCount: 3,
+    tags: ['Romance', 'Love', 'Contemporary'],
+  },
+  {
+    id: 'cat-7',
+    name: 'การเงิน / ธุรกิจ',
+    slug: 'finance-business',
+    description: 'การลงทุน การบริหารจัดการกลยุทธ์ และเศรษฐศาสตร์',
+    bookCount: 2,
+    tags: ['Finance', 'Strategy', 'Business', 'Economics'],
+  },
+];

@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from app.models.book import Book
     from app.models.book_request import BookRequest
+    from app.models.order import Order
 
 from sqlalchemy import DateTime, String, func
 from sqlalchemy.dialects.postgresql import UUID
@@ -48,6 +49,12 @@ class User(Base):
     )
     book_requests: Mapped[list["BookRequest"]] = relationship(
         "BookRequest", back_populates="owner", cascade="all, delete-orphan"
+    )
+    purchases: Mapped[list["Order"]] = relationship(
+        "Order", back_populates="buyer", foreign_keys="Order.buyer_id", cascade="all, delete-orphan"
+    )
+    sales: Mapped[list["Order"]] = relationship(
+        "Order", back_populates="seller", foreign_keys="Order.seller_id", cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:

@@ -17,7 +17,8 @@ export default function Footer() {
         <div className="flex gap-16">
           <div className="flex flex-col gap-3">
             <h4 className="font-heading font-medium mb-2 text-lg">สำรวจ</h4>
-            <Link to="/browse" className="text-sm hover:text-accent transition-colors">ค้นหาหนังสือ</Link>
+            <Link to="/browse" className="text-sm hover:text-accent transition-colors">ค้นหาหนังสือ (แลก)</Link>
+            <Link to="/marketplace" className="text-sm hover:text-accent transition-colors">หนังสือมือสอง (ขาย)</Link>
             <Link to="/requests" className="text-sm hover:text-accent transition-colors">บอร์ดตามหาหนังสือ</Link>
             <Link to="/about" className="text-sm hover:text-accent transition-colors">เกี่ยวกับเรา</Link>
           </div>

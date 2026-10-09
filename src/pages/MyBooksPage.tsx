@@ -40,6 +40,7 @@ export default function MyBooksPage() {
   const total = books.length;
   const available = books.filter(b => b.status === 'Available').length;
   const pending = books.filter(b => b.status === 'Pending').length;
+  const sold = books.filter(b => b.status === 'Sold').length;
 
   return (
     <div className="max-w-6xl mx-auto px-6 md:px-12 py-12">
@@ -55,18 +56,22 @@ export default function MyBooksPage() {
       </div>
 
       {/* Stats strip */}
-      <div className="grid grid-cols-3 gap-4 mb-12 p-6 bg-bg-secondary rounded-md border border-border-main">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-12 p-6 bg-bg-secondary rounded-md border border-border-main">
         <div className="text-center">
           <p className="text-3xl font-heading font-medium">{total}</p>
           <p className="text-sm text-text-main/60 mt-1">หนังสือทั้งหมด</p>
         </div>
-        <div className="text-center border-x border-border-main">
+        <div className="text-center border-l sm:border-x border-border-main">
           <p className="text-3xl font-heading font-medium text-accent">{available}</p>
-          <p className="text-sm text-text-main/60 mt-1">พร้อมแลก</p>
+          <p className="text-sm text-text-main/60 mt-1">พร้อมส่งต่อ</p>
         </div>
-        <div className="text-center">
+        <div className="text-center border-t sm:border-t-0 border-border-main pt-3 sm:pt-0">
           <p className="text-3xl font-heading font-medium text-warning">{pending}</p>
-          <p className="text-sm text-text-main/60 mt-1">รอแลกอยู่</p>
+          <p className="text-sm text-text-main/60 mt-1">รอดำเนินการ</p>
+        </div>
+        <div className="text-center border-t sm:border-t-0 border-l border-border-main pt-3 sm:pt-0">
+          <p className="text-3xl font-heading font-medium text-text-main/70">{sold}</p>
+          <p className="text-sm text-text-main/60 mt-1">ขายแล้ว</p>
         </div>
       </div>
 

@@ -34,7 +34,7 @@ export const MOCK_BOOKS_TH = [
     id: '3',
     title: 'Dune',
     author: 'Frank Herbert',
-    coverUrl: 'https://images.unsplash.com/photo-1614728423169-3f65fd722b05?q=80&w=600&auto=format&fit=crop',
+    coverUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=600&auto=format&fit=crop',
     condition: 'Fair' as BookCondition,
     description: 'มหากาพย์วิทยาศาสตร์บนดาวเคราะห์ทะเลทราย Arrakis ที่ซ่อนทรัพยากรล้ำค่าที่สุดในจักรวาล',
     owner: { name: 'มินต์', avatarUrl: AVATARS.mint },

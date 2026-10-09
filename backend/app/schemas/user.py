@@ -64,6 +64,18 @@ class UserLoginRequest(BaseModel):
     password: str
 
 
+class GoogleLoginRequest(BaseModel):
+    """Payload sent when authenticating via Google Identity Services."""
+    id_token: str | None = None
+    credential: str | None = None
+
+    def get_token(self) -> str:
+        token = (self.credential or self.id_token or "").strip()
+        if not token:
+            raise ValueError("Token is required (credential or id_token)")
+        return token
+
+
 class ChangePasswordRequest(BaseModel):
     old_password: str
     new_password: str = Field(..., min_length=8, max_length=128)

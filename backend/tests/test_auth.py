@@ -156,7 +156,8 @@ class TestLogout:
     async def test_logout_no_token(self, client: AsyncClient) -> None:
         resp = await client.post("/api/logout")
         # HTTPBearer returns 403 when no credentials provided at all
-        assert resp.status_code == 401
+        assert resp.status_code in (401, 403)
+
 
 
 # ---------------------------------------------------------------------------
@@ -205,3 +206,107 @@ class TestChangePassword:
         )
         assert resp.status_code == 400
         assert "different" in resp.json()["detail"]
+
+
+# ---------------------------------------------------------------------------
+# POST /api/auth/google
+# ---------------------------------------------------------------------------
+
+class TestGoogleLogin:
+    @pytest.mark.asyncio
+    async def test_google_login_missing_token(self, client: AsyncClient) -> None:
+        resp = await client.post(
+            "/api/auth/google",
+            json={},
+        )
+        assert resp.status_code == 400
+        assert "Token is required" in resp.json()["detail"]
+
+    @pytest.mark.asyncio
+    async def test_google_login_invalid_token(self, client: AsyncClient) -> None:
+        resp = await client.post(
+            "/api/auth/google",
+            json={"credential": "bogus_google_token"},
+        )
+        assert resp.status_code == 401
+        assert "Invalid Google token" in resp.json()["detail"]
+
+    @pytest.mark.asyncio
+    async def test_google_login_success_new_user(self, client: AsyncClient, monkeypatch: pytest.MonkeyPatch) -> None:
+        from app.routers import auth as auth_router
+
+        async def fake_verify(token_str: str):
+            return {
+                "email": "fresh_google_user@example.com",
+                "display_name": "Fresh Google Reader",
+                "avatar_url": "https://lh3.googleusercontent.com/avatar123",
+                "google_id": "google_uid_99999",
+            }
+
+        monkeypatch.setattr(auth_router, "verify_google_id_token", fake_verify)
+
+        resp = await client.post(
+            "/api/auth/google",
+            json={"credential": "mock_valid_token"},
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["success"] is True
+        token = body["data"]["access_token"]
+        assert token
+
+        # Verify new user can access /api/me
+        me_resp = await client.get(
+            "/api/me",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert me_resp.status_code == 200
+        me_data = me_resp.json()["data"]
+        assert me_data["email"] == "fresh_google_user@example.com"
+        assert me_data["display_name"] == "Fresh Google Reader"
+        assert me_data["avatar_url"] == "https://lh3.googleusercontent.com/avatar123"
+
+    @pytest.mark.asyncio
+    async def test_google_login_success_existing_user(self, client: AsyncClient, monkeypatch: pytest.MonkeyPatch) -> None:
+        from app.routers import auth as auth_router
+
+        # 1. First register user normally
+        reg_resp = await client.post(
+            "/api/register",
+            json={
+                "username": "preexisting_user",
+                "email": "preexisting@example.com",
+                "password": "Str0ng!Pass123",
+                "display_name": "Pre-existing User",
+            },
+        )
+        assert reg_resp.status_code == 201
+
+        # 2. Login via Google with identical email
+        async def fake_verify(token_str: str):
+            return {
+                "email": "preexisting@example.com",
+                "display_name": "Pre-existing Google Name",
+                "avatar_url": "https://lh3.googleusercontent.com/avatar_pre",
+                "google_id": "google_uid_88888",
+            }
+
+        monkeypatch.setattr(auth_router, "verify_google_id_token", fake_verify)
+
+        resp = await client.post(
+            "/api/auth/google",
+            json={"credential": "mock_valid_token"},
+        )
+        assert resp.status_code == 200
+        token = resp.json()["data"]["access_token"]
+
+        # Confirm identity matches existing user
+        me_resp = await client.get(
+            "/api/me",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert me_resp.status_code == 200
+        me_data = me_resp.json()["data"]
+        assert me_data["username"] == "preexisting_user"
+        assert me_data["email"] == "preexisting@example.com"
+

@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Search, ChevronDown, BookPlus, LayoutDashboard, User, Heart, LogOut, BookMarked, MessageCircle, LogIn, Settings } from 'lucide-react';
+import { Search, ChevronDown, BookPlus, LayoutDashboard, User, Heart, LogOut, BookMarked, MessageCircle, LogIn, Settings, Shield } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, role } = useAuth();
 
   const isActive = (path: string) =>
     location.pathname === path ? 'text-accent font-semibold' : 'hover:text-accent transition-colors';
@@ -28,6 +28,7 @@ export default function Navbar() {
 
         <div className="hidden md:flex items-center gap-6 text-sm font-medium">
           <Link to="/browse" className={isActive('/browse')}>ค้นหาหนังสือ</Link>
+          <Link to="/marketplace" className={isActive('/marketplace')}>หนังสือมือสอง</Link>
           <Link to="/requests" className={isActive('/requests')}>บอร์ดตามหา</Link>
           {!isAuthenticated && (
             <Link to="/about" className={isActive('/about')}>เกี่ยวกับเรา</Link>
@@ -116,6 +117,19 @@ export default function Navbar() {
                     <Settings className="w-4 h-4 text-text-main/60" /> ตั้งค่าบัญชี
                   </Link>
                 </div>
+
+                {role === 'admin' && (
+                  <div className="py-1 border-t border-border-main bg-accent/5">
+                    <Link
+                      to="/admin"
+                      onClick={() => setProfileOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-accent hover:bg-accent/10 transition-colors"
+                    >
+                      <Shield className="w-4 h-4 text-accent" />
+                      <span>แผงควบคุมแอดมิน (Admin)</span>
+                    </Link>
+                  </div>
+                )}
 
                 <div className="py-1 border-t border-border-main">
                   <button onClick={handleLogout}

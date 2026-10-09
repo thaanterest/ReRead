@@ -19,23 +19,39 @@ async def get_book_by_id(db: AsyncSession, book_id: uuid.UUID) -> Book | None:
     return result.scalar_one_or_none()
 
 async def get_books_paginated(
-    db: AsyncSession, page: int = 1, limit: int = 20, status: str | None = None, search: str | None = None
+    db: AsyncSession,
+    page: int = 1,
+    limit: int = 20,
+    status: str | None = None,
+    search: str | None = None,
+    listing_type: str | None = None,
+    min_price: float | None = None,
+    max_price: float | None = None,
 ) -> tuple[list[Book], int]:
     query = select(Book).options(selectinload(Book.owner))
+    count_query = select(func.count(Book.id))
     
     if status:
         query = query.where(Book.status == status)
+        count_query = count_query.where(Book.status == status)
         
+    if listing_type and listing_type != "all":
+        query = query.where((Book.listing_type == listing_type) | (Book.listing_type == "both"))
+        count_query = count_query.where((Book.listing_type == listing_type) | (Book.listing_type == "both"))
+
+    if min_price is not None:
+        query = query.where(Book.price >= min_price)
+        count_query = count_query.where(Book.price >= min_price)
+
+    if max_price is not None:
+        query = query.where(Book.price <= max_price)
+        count_query = count_query.where(Book.price <= max_price)
+
     if search:
         search_filter = f"%{search}%"
         query = query.where(
             (Book.title.ilike(search_filter)) | (Book.author.ilike(search_filter))
         )
-        
-    count_query = select(func.count(Book.id))
-    if status:
-        count_query = count_query.where(Book.status == status)
-    if search:
         count_query = count_query.where(
             (Book.title.ilike(search_filter)) | (Book.author.ilike(search_filter))
         )
@@ -77,6 +93,8 @@ async def create_book(
         description=book_in.description,
         tags=book_in.tags,
         status=book_in.status,
+        listing_type=book_in.listing_type,
+        price=book_in.price,
     )
     db.add(book)
     await db.flush()

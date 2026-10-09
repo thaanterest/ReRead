@@ -65,17 +65,20 @@ async def create_user(
     email: str,
     password: str,
     display_name: str,
+    avatar_url: str | None = None,
 ) -> User:
     user = User(
         username=username,
         email=email,
         password_hash=hash_password(password),
         display_name=display_name,
+        avatar_url=avatar_url,
     )
     db.add(user)
     await db.flush()          # populate id & defaults without committing
     await db.refresh(user)    # load server-generated fields
     return user
+
 
 
 # ---------------------------------------------------------------------------

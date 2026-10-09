@@ -9,7 +9,7 @@ the asyncpg driver is never loaded.
 import os
 
 # Override DATABASE_URL before any app module is imported
-os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test.db"
+os.environ["DATABASE_URL"] = "sqlite+aiosqlite:////tmp/test.db"
 
 from collections.abc import AsyncGenerator
 
@@ -18,9 +18,17 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.db.base import Base
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.dialects.postgresql import ARRAY
 
-# Test engine using SQLite (no external DB required)
-TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
+@compiles(ARRAY, "sqlite")
+def compile_array_sqlite(type_, compiler, **kw):
+    return "TEXT"
+
+# Test engine using SQLite in container /tmp to avoid Windows volume lock latency
+TEST_DATABASE_URL = "sqlite+aiosqlite:////tmp/test.db"
+
+
 
 engine_test = create_async_engine(TEST_DATABASE_URL, echo=False)
 async_session_test = async_sessionmaker(

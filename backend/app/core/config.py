@@ -22,9 +22,13 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_MINUTES: int = 60
 
+    # Google OAuth
+    GOOGLE_CLIENT_ID: str = ""
+
     # App
     APP_NAME: str = "ReRead API"
     DEBUG: bool = False
+
 
 
 settings = Settings()

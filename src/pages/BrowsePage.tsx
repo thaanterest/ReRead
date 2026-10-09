@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Search, SlidersHorizontal, ChevronDown, Loader2 } from 'lucide-react';
+import { Search, SlidersHorizontal, Loader2, Repeat, ShoppingBag } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import BookCard from '../components/BookCard';
 import { apiGetBooks, type BookData } from '../services/api';
 
@@ -71,9 +72,12 @@ export default function BrowsePage() {
     setPage(1);
   };
 
-  // Client-side filtering
+  // Client-side filtering: STRICTLY for books available for EXCHANGE
   const filteredBooks = useMemo(() => {
-    let result = allBooks;
+    // 1. Filter only books that accept exchange
+    let result = allBooks.filter(
+      b => b.listing_type === 'exchange' || b.listing_type === 'both' || !b.listing_type
+    );
 
     // Search filter
     if (searchQuery.trim()) {
@@ -115,13 +119,34 @@ export default function BrowsePage() {
   // Reset page when search changes
   useEffect(() => { setPage(1); }, [searchQuery]);
 
-  const activeFilterCount = selectedCategories.length + selectedConditions.length + (showAvailable ? 1 : 0) + (showRare ? 1 : 0);
+  const activeFilterCount =
+    selectedCategories.length +
+    selectedConditions.length +
+    (showAvailable ? 1 : 0) +
+    (showRare ? 1 : 0);
 
   return (
     <div className="max-w-7xl mx-auto px-6 md:px-12 py-12">
-      <div className="mb-12">
-        <h1 className="text-4xl md:text-5xl font-heading font-medium mb-4">ค้นหาหนังสือ</h1>
-        <p className="text-text-main/70 text-lg">สำรวจหนังสือที่พร้อมส่งต่อจากชั้นของเพื่อนนักอ่าน</p>
+      
+      {/* Header Banner */}
+      <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6 pb-8 border-b border-border-main">
+        <div>
+          <div className="flex items-center gap-2 text-accent text-sm font-medium mb-2">
+            <Repeat className="w-4 h-4" /> แลกเปลี่ยนหนังสือ (Book Exchange)
+          </div>
+          <h1 className="text-4xl md:text-5xl font-heading font-medium mb-3">ค้นหาหนังสือ</h1>
+          <p className="text-text-main/70 text-lg">
+            ส่งต่อหนังสือที่อ่านจบแล้ว และค้นพบหนังสือเล่มใหม่ผ่านการแลกเปลี่ยนกับเพื่อนนักอ่าน
+          </p>
+        </div>
+
+        {/* Switch link to marketplace */}
+        <Link
+          to="/marketplace"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md border border-border-main text-sm font-medium text-text-main/80 hover:text-accent hover:border-accent transition-colors bg-bg-secondary/40 flex-shrink-0"
+        >
+          <ShoppingBag className="w-4 h-4 text-accent" /> ไปที่หน้าหนังสือมือสอง (สำหรับซื้อ) →
+        </Link>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-12">
@@ -147,7 +172,12 @@ export default function BrowsePage() {
               </div>
               {activeFilterCount > 0 && (
                 <button
-                  onClick={() => { setSelectedCategories([]); setSelectedConditions([]); setShowAvailable(false); setShowRare(false); }}
+                  onClick={() => {
+                    setSelectedCategories([]);
+                    setSelectedConditions([]);
+                    setShowAvailable(false);
+                    setShowRare(false);
+                  }}
                   className="text-xs text-accent hover:underline"
                 >
                   ล้างทั้งหมด ({activeFilterCount})
@@ -219,46 +249,75 @@ export default function BrowsePage() {
           </div>
         </aside>
 
-        <div className="flex-1">
-          <div className="flex justify-between items-center mb-6">
-            <p className="text-text-main/60 text-sm">พบหนังสือ {filteredBooks.length} เล่ม</p>
-            <button className="flex items-center gap-2 text-sm border border-border-main px-3 py-1.5 rounded-md hover:bg-bg-secondary transition-colors">
-              เรียงตาม: มาใหม่ล่าสุด <ChevronDown className="w-4 h-4" />
-            </button>
+        {/* Main Content Area */}
+        <main className="flex-1">
+          <div className="flex items-center justify-between mb-8 pb-4 border-b border-border-main">
+            <p className="text-text-main/60 text-sm font-medium">
+              พบหนังสือพร้อมแลก <span className="text-text-main font-semibold">{filteredBooks.length}</span> เล่ม
+            </p>
           </div>
 
           {loading ? (
-            <div className="flex justify-center items-center py-20">
+            <div className="flex justify-center items-center py-32">
               <Loader2 className="w-8 h-8 animate-spin text-accent" />
             </div>
           ) : error ? (
-            <div className="text-center text-warning py-10">{error}</div>
+            <div className="text-center py-20 text-warning font-medium">{error}</div>
           ) : paginatedBooks.length === 0 ? (
-            <div className="text-center text-text-main/60 py-20">ไม่พบหนังสือที่ตรงตามเงื่อนไข</div>
+            <div className="text-center py-24 border border-dashed border-border-main rounded-lg bg-bg-secondary/30">
+              <p className="text-text-main/60 text-lg mb-2">ไม่พบหนังสือพร้อมแลกที่ตรงกับเงื่อนไข</p>
+              <p className="text-text-main/40 text-sm mb-4">ลองปรับลดตัวกรองหรือค้นหาด้วยคำอื่น</p>
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedCategories([]);
+                  setSelectedConditions([]);
+                  setShowAvailable(false);
+                  setShowRare(false);
+                }}
+                className="text-accent text-sm underline font-medium"
+              >
+                ล้างตัวกรองทั้งหมด
+              </button>
+            </div>
           ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-10">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
               {paginatedBooks.map((book) => (
-                <BookCard key={book.id} book={book as any} />
+                <BookCard key={book.id} book={book as any} mode="exchange" />
               ))}
             </div>
           )}
 
-          {/* Pagination */}
-          {!loading && totalPages > 1 && (
-            <div className="mt-16 flex justify-center gap-2">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                <button 
-                  key={p} 
-                  onClick={() => setPage(p)}
-                  className={`w-10 h-10 flex items-center justify-center rounded-md border ${p === page ? 'border-accent bg-accent text-bg-main' : 'border-border-main hover:bg-bg-secondary text-text-main'} transition-colors`}
-                >
-                  {p}
-                </button>
-              ))}
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-16 pt-8 border-t border-border-main">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-4 py-2 border border-border-main rounded-md text-sm font-medium disabled:opacity-30 hover:bg-bg-secondary transition-colors"
+              >
+                ก่อนหน้า
+              </button>
+              
+              <div className="flex items-center gap-1 px-4 text-sm">
+                <span>หน้า</span>
+                <span className="font-semibold text-accent">{page}</span>
+                <span>จาก</span>
+                <span>{totalPages}</span>
+              </div>
+
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="px-4 py-2 border border-border-main rounded-md text-sm font-medium disabled:opacity-30 hover:bg-bg-secondary transition-colors"
+              >
+                ถัดไป
+              </button>
             </div>
           )}
-        </div>
+        </main>
       </div>
+
     </div>
   );
 }
