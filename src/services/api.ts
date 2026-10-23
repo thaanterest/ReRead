@@ -2,7 +2,9 @@
  * API service — centralized HTTP client for calling the backend.
  */
 
-const API_BASE = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:8000/api';
+const API_BASE = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : 'https://reread-jang.onrender.com/api';
 
 interface ApiResponse<T> {
   success: boolean;
