@@ -4,6 +4,7 @@ import { ArrowLeft, BookMarked, MessageCircle, MapPin, Share2, AlertCircle, Load
 import { apiGetBook, type BookData } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import CheckoutModal from '../components/CheckoutModal';
+import { MOCK_BOOKS } from '../data/mockBooks';
 
 export default function BookDetailPage() {
   const { id } = useParams();
@@ -18,12 +19,45 @@ export default function BookDetailPage() {
     if (!id) return;
     const fetchBook = async () => {
       setLoading(true);
+      setError('');
+
+      // Check if id matches mock books first if it's not a standard UUID (e.g., '1', '2', 'b-1')
+      const mock = MOCK_BOOKS.find(b => String(b.id) === String(id));
+
       try {
         const res = await apiGetBook(id);
         if (res.success && res.data) {
           setBook(res.data);
+          setLoading(false);
+          return;
         }
       } catch (err: any) {
+        // If it's a mock book, fallback gracefully to mock book data
+        if (mock) {
+          setBook({
+            id: mock.id,
+            title: mock.title,
+            author: mock.author,
+            condition: mock.condition,
+            description: mock.description,
+            cover_url: mock.coverUrl,
+            tags: mock.tags,
+            status: mock.status,
+            listing_type: mock.listing_type || 'exchange',
+            price: mock.price ?? undefined,
+            owner_id: mock.owner.id || 'mock-owner',
+            created_at: mock.createdAt || new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            owner: {
+              id: mock.owner.id || 'mock-owner',
+              display_name: mock.owner.name,
+              avatar_url: mock.owner.avatarUrl,
+            } as any
+          });
+          setLoading(false);
+          return;
+        }
+
         setError(err.message || 'ไม่พบหนังสือเล่มนี้');
       } finally {
         setLoading(false);

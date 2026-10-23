@@ -1,10 +1,24 @@
+import { useState, useEffect } from 'react';
 import { ArrowRight, BookMarked, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import BookCard from '../components/BookCard';
 import { MOCK_BOOKS } from '../data/mockBooks';
+import { apiGetBooks } from '../services/api';
 
 export default function LandingPage() {
-  const featuredBooks = MOCK_BOOKS.slice(0, 4);
+  const [featuredBooks, setFeaturedBooks] = useState<any[]>(MOCK_BOOKS.slice(0, 4));
+
+  useEffect(() => {
+    apiGetBooks({ page: 1, limit: 4 })
+      .then(res => {
+        if (res.success && res.data?.books?.length) {
+          setFeaturedBooks(res.data.books);
+        }
+      })
+      .catch(() => {
+        // keep fallback mock books
+      });
+  }, []);
 
   return (
     <div className="w-full">
