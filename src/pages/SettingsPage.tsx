@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { User, Lock, LogOut, Camera, Save, Loader2, CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { User, Lock, LogOut, Camera, Save, Loader2, CheckCircle, AlertCircle, Eye, EyeOff, Upload } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiUpdateUser, apiChangePassword } from '../services/api';
 
@@ -21,6 +21,7 @@ const AVATAR_PRESETS = [
 export default function SettingsPage() {
   const { user, isAuthenticated, isLoading, refreshUser, logout } = useAuth();
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Profile tab states
   const [activeTab, setActiveTab] = useState<ActiveTab>('profile');
@@ -46,6 +47,29 @@ export default function SettingsPage() {
     }
   }, [user]);
 
+  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Check file size (max 4MB)
+      if (file.size > 4 * 1024 * 1024) {
+        setProfileMsg({ type: 'error', text: 'ขนาดไฟล์ภาพต้องไม่เกิน 4MB ค่ะ' });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setAvatarUrl(reader.result);
+          setProfileMsg({ type: 'success', text: 'เลือกรูปภาพเรียบร้อยแล้ว อย่าลืมกด "บันทึกการเปลี่ยนแปลง" นะคะ' });
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const triggerFileSelect = () => {
+    fileInputRef.current?.click();
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-32">
@@ -69,7 +93,7 @@ export default function SettingsPage() {
         avatar_url: avatarUrl || undefined,
       });
       await refreshUser();
-      setProfileMsg({ type: 'success', text: 'บันทึกข้อมูลสำเร็จแล้วค่ะ!' });
+      setProfileMsg({ type: 'success', text: 'บันทึกข้อมูลส่วนตัวเรียบร้อยแล้วค่ะ!' });
     } catch (err: any) {
       setProfileMsg({ type: 'error', text: err.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' });
     } finally {
@@ -115,31 +139,56 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="max-w-4xl mx-auto px-6 md:px-12 py-12">
-      <div className="mb-10">
-        <h1 className="text-4xl font-heading font-medium mb-2">ตั้งค่าบัญชี</h1>
-        <p className="text-text-main/60">จัดการข้อมูลส่วนตัวและความปลอดภัยของบัญชีคุณ</p>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 md:px-12 py-8 md:py-12">
+      {/* Hidden native file input for gallery / files */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleAvatarFileChange}
+        className="hidden"
+      />
+
+      <div className="mb-6 md:mb-10">
+        <h1 className="text-3xl sm:text-4xl font-heading font-medium mb-2">ตั้งค่าบัญชี</h1>
+        <p className="text-sm sm:text-base text-text-main/60">จัดการข้อมูลส่วนตัวและความปลอดภัยของบัญชีคุณ</p>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-8">
+      <div className="flex flex-col md:flex-row gap-6 md:gap-8">
 
         {/* Left Sidebar: Tabs + Avatar Preview */}
-        <aside className="w-full md:w-64 flex-shrink-0 flex flex-col gap-6">
-          {/* Avatar Preview */}
+        <aside className="w-full md:w-64 flex-shrink-0 flex flex-col gap-4 md:gap-6">
+          {/* Avatar Preview & Click to Change */}
           <div className="flex flex-col items-center p-6 bg-bg-secondary border border-border-main rounded-md gap-3">
-            <div className="relative">
+            <div 
+              onClick={triggerFileSelect}
+              className="relative cursor-pointer group"
+              title="กดเพื่อเลือกรูปภาพจากแกลลอรี่ / ไฟล์ในเครื่อง"
+            >
               <img
                 src={currentAvatar}
                 alt={user?.display_name}
-                className="w-24 h-24 rounded-full object-cover border-2 border-border-main bg-bg-main"
+                className="w-24 h-24 rounded-full object-cover border-2 border-border-main bg-bg-main group-hover:opacity-90 transition-opacity"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = `https://api.dicebear.com/9.x/thumbs/svg?seed=${user?.username}`;
                 }}
               />
-              <div className="absolute bottom-0 right-0 w-7 h-7 bg-accent rounded-full flex items-center justify-center border-2 border-bg-secondary">
+              <div className="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <Upload className="w-6 h-6 text-white" />
+              </div>
+              <div className="absolute bottom-0 right-0 w-7 h-7 bg-accent rounded-full flex items-center justify-center border-2 border-bg-secondary group-hover:scale-110 transition-transform">
                 <Camera className="w-3.5 h-3.5 text-bg-main" />
               </div>
             </div>
+            
+            <button
+              type="button"
+              onClick={triggerFileSelect}
+              className="text-xs text-accent font-medium hover:underline flex items-center gap-1"
+            >
+              <Camera className="w-3.5 h-3.5" /> เปลี่ยนรูปโปรไฟล์ (แกลลอรี่)
+            </button>
+
             <div className="text-center">
               <p className="font-heading font-medium text-text-main">{user?.display_name}</p>
               <p className="text-xs text-text-main/50 mt-0.5">@{user?.username}</p>
@@ -147,15 +196,15 @@ export default function SettingsPage() {
           </div>
 
           {/* Tab Navigation */}
-          <nav className="flex flex-col gap-1">
+          <nav className="flex flex-row md:flex-col gap-1 overflow-x-auto pb-1 md:pb-0">
             {tabs.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium text-left transition-colors ${
+                className={`flex-1 md:flex-none flex items-center justify-center md:justify-start gap-2 sm:gap-3 px-4 py-2.5 sm:py-3 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
                   activeTab === tab.id
-                    ? 'bg-accent/10 text-accent'
-                    : 'text-text-main/70 hover:bg-bg-secondary hover:text-text-main'
+                    ? 'bg-accent/10 text-accent font-semibold border border-accent/20 md:border-transparent'
+                    : 'text-text-main/70 hover:bg-bg-secondary hover:text-text-main border border-border-main/50 md:border-transparent'
                 }`}
               >
                 {tab.icon}
@@ -164,7 +213,7 @@ export default function SettingsPage() {
             ))}
             <button
               onClick={handleLogout}
-              className="flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium text-left text-warning/80 hover:bg-warning/10 hover:text-warning transition-colors mt-2"
+              className="hidden md:flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium text-left text-warning/80 hover:bg-warning/10 hover:text-warning transition-colors mt-2"
             >
               <LogOut className="w-4 h-4" />
               ออกจากระบบ
@@ -177,8 +226,8 @@ export default function SettingsPage() {
 
           {/* ── PROFILE TAB ── */}
           {activeTab === 'profile' && (
-            <div className="bg-bg-main border border-border-main rounded-md p-6 md:p-8">
-              <h2 className="text-2xl font-heading font-medium mb-6">ข้อมูลส่วนตัว</h2>
+            <div className="bg-bg-main border border-border-main rounded-md p-5 sm:p-8">
+              <h2 className="text-xl sm:text-2xl font-heading font-medium mb-6">ข้อมูลส่วนตัว</h2>
 
               <form onSubmit={handleSaveProfile} className="flex flex-col gap-6">
                 {/* Display Name */}
@@ -189,7 +238,7 @@ export default function SettingsPage() {
                     value={displayName}
                     onChange={e => setDisplayName(e.target.value)}
                     required
-                    className="w-full bg-bg-secondary border border-border-main rounded-md px-4 py-2.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
+                    className="w-full bg-bg-secondary border border-border-main rounded-md px-4 py-2.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all text-sm sm:text-base"
                     placeholder="ชื่อที่จะแสดงให้ผู้อื่นเห็น"
                   />
                 </div>
@@ -201,7 +250,7 @@ export default function SettingsPage() {
                     type="text"
                     value={user?.username || ''}
                     readOnly
-                    className="w-full bg-bg-secondary/50 border border-border-main rounded-md px-4 py-2.5 text-text-main/50 cursor-not-allowed"
+                    className="w-full bg-bg-secondary/50 border border-border-main rounded-md px-4 py-2.5 text-text-main/50 cursor-not-allowed text-sm"
                   />
                 </div>
 
@@ -212,41 +261,42 @@ export default function SettingsPage() {
                     type="text"
                     value={user?.email || ''}
                     readOnly
-                    className="w-full bg-bg-secondary/50 border border-border-main rounded-md px-4 py-2.5 text-text-main/50 cursor-not-allowed"
+                    className="w-full bg-bg-secondary/50 border border-border-main rounded-md px-4 py-2.5 text-text-main/50 cursor-not-allowed text-sm"
                   />
                 </div>
 
-                {/* Avatar URL Input */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium">URL รูปโปรไฟล์</label>
-                  <input
-                    type="url"
-                    value={avatarUrl}
-                    onChange={e => setAvatarUrl(e.target.value)}
-                    className="w-full bg-bg-secondary border border-border-main rounded-md px-4 py-2.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
-                    placeholder="https://example.com/avatar.jpg"
-                  />
-                  <p className="text-xs text-text-main/50">วาง URL รูปภาพ หรือเลือก Avatar สำเร็จรูปด้านล่าง</p>
-                </div>
+                {/* Avatar Selection: Upload from Device or Pick Preset */}
+                <div className="flex flex-col gap-3 pt-2 border-t border-border-main/60">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">รูปภาพโปรไฟล์</label>
+                    <button
+                      type="button"
+                      onClick={triggerFileSelect}
+                      className="text-xs text-accent font-medium hover:underline flex items-center gap-1.5"
+                    >
+                      <Upload className="w-3.5 h-3.5" /> อัปโหลดจากแกลลอรี่ / อุปกรณ์
+                    </button>
+                  </div>
 
-                {/* Avatar Presets */}
-                <div className="flex flex-col gap-3">
-                  <label className="text-sm font-medium">เลือก Avatar สำเร็จรูป</label>
-                  <div className="grid grid-cols-8 gap-2">
-                    {AVATAR_PRESETS.map((preset, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => setAvatarUrl(preset)}
-                        className={`aspect-square rounded-full overflow-hidden border-2 transition-all ${
-                          avatarUrl === preset
-                            ? 'border-accent scale-110 shadow-md shadow-accent/30'
-                            : 'border-border-main hover:border-accent/50 hover:scale-105'
-                        }`}
-                      >
-                        <img src={preset} alt={`Avatar ${i + 1}`} className="w-full h-full object-cover" />
-                      </button>
-                    ))}
+                  {/* Avatar Presets */}
+                  <div className="flex flex-col gap-2">
+                    <p className="text-xs text-text-main/60">หรือเลือกจาก Avatar สำเร็จรูป:</p>
+                    <div className="grid grid-cols-4 sm:grid-cols-8 gap-2.5">
+                      {AVATAR_PRESETS.map((preset, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setAvatarUrl(preset)}
+                          className={`aspect-square rounded-full overflow-hidden border-2 transition-all ${
+                            avatarUrl === preset
+                              ? 'border-accent scale-110 shadow-md shadow-accent/30 ring-2 ring-accent/20'
+                              : 'border-border-main hover:border-accent/50 hover:scale-105'
+                          }`}
+                        >
+                          <img src={preset} alt={`Avatar ${i + 1}`} className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
