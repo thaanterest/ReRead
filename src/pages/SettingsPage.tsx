@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { User, Lock, LogOut, Camera, Save, Loader2, CheckCircle, AlertCircle, Eye, EyeOff, Upload } from 'lucide-react';
+import { User, Lock, LogOut, Camera, Save, Loader2, CheckCircle, AlertCircle, Eye, EyeOff, Upload, ZoomIn, ZoomOut, RotateCcw, Check, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiUpdateUser, apiChangePassword } from '../services/api';
 
@@ -18,6 +18,222 @@ const AVATAR_PRESETS = [
   'https://api.dicebear.com/9.x/thumbs/svg?seed=Max&backgroundColor=ffdfbf',
 ];
 
+// ─── Image Cropper Modal ──────────────────────────────────────────────────────
+interface ImageCropperProps {
+  imageSrc: string;
+  onCrop: (croppedBase64: string) => void;
+  onCancel: () => void;
+}
+
+function ImageCropperModal({ imageSrc, onCrop, onCancel }: ImageCropperProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const [scale, setScale] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [imgNaturalSize, setImgNaturalSize] = useState({ w: 0, h: 0 });
+  const [imgLoaded, setImgLoaded] = useState(false);
+
+  const CROP_SIZE = 280;
+  const CANVAS_SIZE = 380;
+  const imgRef = useRef<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => {
+      imgRef.current = img;
+      setImgNaturalSize({ w: img.width, h: img.height });
+      const minDim = Math.min(img.width, img.height);
+      const initScale = CROP_SIZE / minDim;
+      setScale(initScale);
+      setOffset({ x: 0, y: 0 });
+      setImgLoaded(true);
+    };
+    img.src = imageSrc;
+  }, [imageSrc]);
+
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    const img = imgRef.current;
+    if (!canvas || !img || !imgLoaded) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    const cx = CANVAS_SIZE / 2;
+    const cy = CANVAS_SIZE / 2;
+    const drawW = imgNaturalSize.w * scale;
+    const drawH = imgNaturalSize.h * scale;
+    const imgX = cx - drawW / 2 + offset.x;
+    const imgY = cy - drawH / 2 + offset.y;
+
+    ctx.globalAlpha = 0.35;
+    ctx.drawImage(img, imgX, imgY, drawW, drawH);
+    ctx.globalAlpha = 1;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, CROP_SIZE / 2, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(img, imgX, imgY, drawW, drawH);
+    ctx.restore();
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, CROP_SIZE / 2, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, CROP_SIZE / 2, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+    ctx.lineWidth = 1;
+    for (let i = 1; i <= 2; i++) {
+      const xLine = cx - CROP_SIZE / 2 + (CROP_SIZE / 3) * i;
+      const yLine = cy - CROP_SIZE / 2 + (CROP_SIZE / 3) * i;
+      ctx.beginPath(); ctx.moveTo(xLine, cy - CROP_SIZE / 2); ctx.lineTo(xLine, cy + CROP_SIZE / 2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx - CROP_SIZE / 2, yLine); ctx.lineTo(cx + CROP_SIZE / 2, yLine); ctx.stroke();
+    }
+    ctx.restore();
+  }, [imgLoaded, imgNaturalSize, scale, offset]);
+
+  useEffect(() => { draw(); }, [draw]);
+
+  const getEventPos = (e: React.MouseEvent | React.TouchEvent) => {
+    if ('touches' in e) {
+      const rect = canvasRef.current!.getBoundingClientRect();
+      return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+    }
+    return { x: (e as React.MouseEvent).nativeEvent.offsetX, y: (e as React.MouseEvent).nativeEvent.offsetY };
+  };
+
+  const onPointerDown = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    const pos = getEventPos(e);
+    setDragStart({ x: pos.x - offset.x, y: pos.y - offset.y });
+  };
+
+  const onPointerMove = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const pos = getEventPos(e);
+    setOffset({ x: pos.x - dragStart.x, y: pos.y - dragStart.y });
+  };
+
+  const onPointerUp = () => setIsDragging(false);
+
+  const onWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.08 : 0.08;
+    setScale(s => Math.min(Math.max(s + delta, 0.2), 8));
+  };
+
+  const handleReset = () => {
+    const minDim = Math.min(imgNaturalSize.w, imgNaturalSize.h);
+    setScale(CROP_SIZE / minDim);
+    setOffset({ x: 0, y: 0 });
+  };
+
+  const handleConfirm = () => {
+    const img = imgRef.current;
+    if (!img) return;
+    const OUT = 400;
+    const outputCanvas = document.createElement('canvas');
+    outputCanvas.width = OUT;
+    outputCanvas.height = OUT;
+    const ctx = outputCanvas.getContext('2d');
+    if (!ctx) return;
+
+    const cx = CANVAS_SIZE / 2;
+    const cy = CANVAS_SIZE / 2;
+    const drawW = imgNaturalSize.w * scale;
+    const drawH = imgNaturalSize.h * scale;
+    const imgX = cx - drawW / 2 + offset.x;
+    const imgY = cy - drawH / 2 + offset.y;
+    const cropLeft = cx - CROP_SIZE / 2;
+    const cropTop  = cy - CROP_SIZE / 2;
+    const srcX = (cropLeft - imgX) / scale;
+    const srcY = (cropTop  - imgY) / scale;
+    const srcW = CROP_SIZE / scale;
+    const srcH = CROP_SIZE / scale;
+
+    ctx.beginPath();
+    ctx.arc(OUT / 2, OUT / 2, OUT / 2, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, OUT, OUT);
+    onCrop(outputCanvas.toDataURL('image/jpeg', 0.88));
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+      <div className="bg-bg-main border border-border-main rounded-xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border-main">
+          <div>
+            <h3 className="font-heading font-semibold text-base">ปรับรูปโปรไฟล์</h3>
+            <p className="text-xs text-text-main/50 mt-0.5">ลากรูปเพื่อเลื่อน · Scroll เพื่อซูม</p>
+          </div>
+          <button onClick={onCancel} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-bg-secondary transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Canvas */}
+        <div ref={containerRef} className="relative flex items-center justify-center bg-[#111] overflow-hidden select-none" style={{ height: CANVAS_SIZE }}>
+          {!imgLoaded && <Loader2 className="w-8 h-8 animate-spin text-white/40" />}
+          <canvas
+            ref={canvasRef}
+            width={CANVAS_SIZE}
+            height={CANVAS_SIZE}
+            style={{ cursor: isDragging ? 'grabbing' : 'grab', touchAction: 'none', maxWidth: '100%' }}
+            onMouseDown={onPointerDown}
+            onMouseMove={onPointerMove}
+            onMouseUp={onPointerUp}
+            onMouseLeave={onPointerUp}
+            onTouchStart={onPointerDown}
+            onTouchMove={onPointerMove}
+            onTouchEnd={onPointerUp}
+            onWheel={onWheel}
+          />
+        </div>
+
+        {/* Zoom controls */}
+        <div className="flex items-center gap-3 px-5 py-3 border-t border-border-main/60 bg-bg-secondary/50">
+          <button type="button" onClick={() => setScale(s => Math.max(s - 0.15, 0.2))} className="w-8 h-8 rounded-md border border-border-main flex items-center justify-center hover:bg-bg-secondary transition-colors">
+            <ZoomOut className="w-4 h-4" />
+          </button>
+          <input
+            type="range" min={0.2} max={8} step={0.05} value={scale}
+            onChange={e => setScale(parseFloat(e.target.value))}
+            className="flex-1 h-1.5 cursor-pointer"
+          />
+          <button type="button" onClick={() => setScale(s => Math.min(s + 0.15, 8))} className="w-8 h-8 rounded-md border border-border-main flex items-center justify-center hover:bg-bg-secondary transition-colors">
+            <ZoomIn className="w-4 h-4" />
+          </button>
+          <button type="button" onClick={handleReset} title="รีเซ็ต" className="w-8 h-8 rounded-md border border-border-main flex items-center justify-center hover:bg-bg-secondary transition-colors ml-1">
+            <RotateCcw className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex gap-3 px-5 py-4 border-t border-border-main">
+          <button type="button" onClick={onCancel} className="flex-1 py-2.5 rounded-lg border border-border-main text-sm font-medium hover:bg-bg-secondary transition-colors">ยกเลิก</button>
+          <button type="button" onClick={handleConfirm} className="flex-1 py-2.5 rounded-lg bg-accent text-bg-main text-sm font-semibold flex items-center justify-center gap-2 hover:bg-accent/90 transition-colors">
+            <Check className="w-4 h-4" /> ใช้รูปนี้
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const { user, isAuthenticated, isLoading, refreshUser, logout } = useAuth();
   const navigate = useNavigate();
@@ -29,6 +245,9 @@ export default function SettingsPage() {
   const [avatarUrl, setAvatarUrl] = useState('');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileMsg, setProfileMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Cropper states
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
 
   // Security tab states
   const [oldPassword, setOldPassword] = useState('');
@@ -47,50 +266,27 @@ export default function SettingsPage() {
     }
   }, [user]);
 
+  // When user picks a file → open cropper
   const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        setProfileMsg({ type: 'error', text: 'ขนาดไฟล์ภาพต้องไม่เกิน 10MB ค่ะ' });
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-          // Resize avatar to maximum 250x250 for crisp profile quality and small data size
-          const canvas = document.createElement('canvas');
-          const maxDim = 250;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > maxDim) {
-              height = Math.round((height * maxDim) / width);
-              width = maxDim;
-            }
-          } else {
-            if (height > maxDim) {
-              width = Math.round((width * maxDim) / height);
-              height = maxDim;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(img, 0, 0, width, height);
-            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
-            setAvatarUrl(compressedBase64);
-            setProfileMsg({ type: 'success', text: 'เลือกรูปภาพเรียบร้อยแล้ว อย่าลืมกด "บันทึกการเปลี่ยนแปลง" นะคะ' });
-          }
-        };
-        img.src = event.target?.result as string;
-      };
-      reader.readAsDataURL(file);
+    e.target.value = ''; // reset so same file can be re-selected
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) {
+      setProfileMsg({ type: 'error', text: 'ขนาดไฟล์ภาพต้องไม่เกิน 20MB ค่ะ' });
+      return;
     }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setCropSrc(ev.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Cropper confirmed → save base64
+  const handleCropConfirm = (croppedBase64: string) => {
+    setAvatarUrl(croppedBase64);
+    setCropSrc(null);
+    setProfileMsg({ type: 'success', text: 'เลือกรูปภาพเรียบร้อยแล้ว อย่าลืมกด "บันทึกการเปลี่ยนแปลง" นะคะ' });
   };
 
   const triggerFileSelect = () => {
@@ -166,7 +362,17 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 md:px-12 py-8 md:py-12">
+    <>
+      {/* ── Image Cropper Modal ── */}
+      {cropSrc && (
+        <ImageCropperModal
+          imageSrc={cropSrc}
+          onCrop={handleCropConfirm}
+          onCancel={() => setCropSrc(null)}
+        />
+      )}
+
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 md:px-12 py-8 md:py-12">
       {/* Hidden native file input for gallery / files */}
       <input
         ref={fileInputRef}
@@ -459,5 +665,6 @@ export default function SettingsPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }
