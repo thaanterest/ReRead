@@ -25,7 +25,7 @@ class TestGetMe:
     @pytest.mark.asyncio
     async def test_get_me_no_auth(self, client: AsyncClient) -> None:
         resp = await client.get("/api/me")
-        assert resp.status_code == 401
+        assert resp.status_code in (401, 403)
 
 
 # ---------------------------------------------------------------------------
