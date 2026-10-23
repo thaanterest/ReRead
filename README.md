@@ -7,7 +7,11 @@
 [![React](https://img.shields.io/badge/Frontend-React_19-61DAFB?style=flat-square&logo=react)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/Language-TypeScript-3178C6?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL_16-336791?style=flat-square&logo=postgresql)](https://www.postgresql.org/)
-[![Docker](https://img.shields.io/badge/Container-Docker_Compose-2496ED?style=flat-square&logo=docker)](https://www.docker.com/)
+[![Deployed on Vercel](https://img.shields.io/badge/Frontend-Vercel-000000?style=flat-square&logo=vercel)](https://re-read-ten.vercel.app)
+[![Backend on Render](https://img.shields.io/badge/Backend-Render-46E3B7?style=flat-square&logo=render)](https://reread-jang.onrender.com)
+[![Database on Supabase](https://img.shields.io/badge/Database-Supabase-3ECF8E?style=flat-square&logo=supabase)](https://supabase.com)
+
+### 🌐 Live Demo: [https://re-read-ten.vercel.app](https://re-read-ten.vercel.app)
 
 ---
 
@@ -88,28 +92,46 @@ ReRead ถูกพัฒนาขึ้นเพื่อแก้ปัญห�
 - **Security:** `python-jose` (JWT) + `passlib[bcrypt]`
 
 ### 🗄️ Database & Infrastructure
-- **Database:** [PostgreSQL 16](https://www.postgresql.org/) (พร้อมเปิดใช้งานส่วนขยาย `pg_trgm`)
-- **Containerization:** [Docker & Docker Compose](https://www.docker.com/)
+- **Database:** [PostgreSQL 16](https://www.postgresql.org/) via [Supabase](https://supabase.com) (พร้อมเปิดใช้งานส่วนขยาย `pg_trgm`)
+- **Backend Hosting:** [Render.com](https://render.com) (Python Web Service)
+- **Frontend Hosting:** [Vercel](https://vercel.com) (Static SPA + Edge Network)
+- **Local Development:** [Docker & Docker Compose](https://www.docker.com/)
 
 ---
 
 ## 🏗️ สถาปัตยกรรมของระบบ (Architecture)
 
-ระบบปัจจุบันพัฒนาในรูปแบบ **Modular Monolith** ที่แยกการทำงานระหว่าง Frontend และ REST API Backend ผ่าน Docker Containers:
+ระบบปัจจุบันพัฒนาในรูปแบบ **Modular Monolith** ที่แยกการทำงานระหว่าง Frontend และ REST API Backend:
 
+### Production Architecture (Deployed)
+```
+┌────────────────────────────┐        HTTP / JSON         ┌──────────────────────────────┐
+│   React Frontend (Vercel)  │ ◄────────────────────────► │  FastAPI Backend (Render.com) │
+│  re-read-ten.vercel.app    │   (JWT Bearer Auth / CORS)  │  reread-jang.onrender.com    │
+└────────────────────────────┘                            └──────────────┬───────────────┘
+                                                                         │
+                                                           SQLAlchemy 2.0│ (asyncpg)
+                                                                         ▼
+                                                          ┌──────────────────────────────┐
+                                                          │    Supabase PostgreSQL 16    │
+                                                          │  - pg_trgm (GIN Index)       │
+                                                          │  - Composite B-Tree Indexes  │
+                                                          │  - ap-northeast-1 (Tokyo)    │
+                                                          └──────────────────────────────┘
+```
+
+### Local Development Architecture
 ```
 ┌────────────────────────┐         HTTP / JSON          ┌────────────────────────┐
 │     React Frontend     │ ◄──────────────────────────► │     FastAPI Backend    │
 │  (Port 5176 via Vite)  │    (JWT Bearer Auth / CORS)  │ (Port 8000 via Uvicorn)│
 └────────────────────────┘                              └───────────┬────────────┘
-                                                                    │
-                                                      SQLAlchemy 2.0│ (asyncpg)
+                                                                    │ SQLAlchemy 2.0 (asyncpg)
                                                                     ▼
                                                         ┌────────────────────────┐
-                                                        │     PostgreSQL 16      │
+                                                        │  PostgreSQL 16 (Docker)│
                                                         │  - pg_trgm (GIN Index) │
-                                                        │  - Composite B-Tree    │
-                                                        │ (Port 5432 via Docker) │
+                                                        │  Port 5432             │
                                                         └────────────────────────┘
 ```
 
@@ -168,10 +190,22 @@ npm run dev
 
 ## 🌐 URLs สำหรับเข้าใช้งาน
 
+### 🌐 Production URLs (Live)
+
+| ส่วนงาน | URL | คำอธิบาย |
+|---|---|---|
+| **🌍 Frontend Website** | [re-read-ten.vercel.app](https://re-read-ten.vercel.app) | หน้าเว็บหลักของ ReRead (Deploy บน Vercel) |
+| **🛡️ Admin Portal** | [/admin/login](https://re-read-ten.vercel.app/admin/login) | หน้าเข้าสู่ระบบสำหรับแอดมิน (Email: `admin@reread.com` / Password: `admin1234`) |
+| **⚙️ Backend API** | [reread-jang.onrender.com](https://reread-jang.onrender.com) | FastAPI Backend (Deploy บน Render.com) |
+| **📖 API Docs (Swagger)** | [/docs](https://reread-jang.onrender.com/docs) | เอกสารคู่มือทดสอบ API แบบ Interactive |
+| **❤️ Health Check** | [/health](https://reread-jang.onrender.com/health) | ตรวจสอบสถานะ Backend API |
+
+### 💻 Local Development URLs
+
 | ส่วนงาน | URL | คำอธิบาย |
 |---|---|---|
 | **Frontend Website** | [http://localhost:5176](http://localhost:5176) | หน้าเว็บหลักของ ReRead (กำหนดพอร์ต 5176) |
-| **Admin Portal** | [http://localhost:5176/admin/login](http://localhost:5176/admin/login) | หน้าเข้าสู่ระบบสำหรับแอดมิน (ขึ้นใน Terminal ตอนรัน `npm run dev`) |
+| **Admin Portal** | [http://localhost:5176/admin/login](http://localhost:5176/admin/login) | หน้าเข้าสู่ระบบสำหรับแอดมิน |
 | **Backend API** | [http://localhost:8000](http://localhost:8000) | ฐานข้อมูลและ REST API Endpoints |
 | **API Documentation (Swagger)** | [http://localhost:8000/docs](http://localhost:8000/docs) | เอกสารคู่มือทดสอบ API แบบ Interactive |
 | **Alternative Docs (ReDoc)** | [http://localhost:8000/redoc](http://localhost:8000/redoc) | เอกสาร API รูปแบบ ReDoc |
