@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Search, SlidersHorizontal, Loader2, Repeat, ShoppingBag } from 'lucide-react';
+import { Search, SlidersHorizontal, Loader2, Repeat, ShoppingBag, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import BookCard from '../components/BookCard';
 import { apiGetBooks, type BookData } from '../services/api';
@@ -31,6 +31,7 @@ export default function BrowsePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
   // Filter states
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -149,9 +150,37 @@ export default function BrowsePage() {
         </Link>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-12">
-        {/* Sidebar Filters */}
-        <aside className="w-full lg:w-64 flex-shrink-0">
+      {/* Mobile Filter Toggle & Search Bar */}
+      <div className="lg:hidden flex items-center gap-3 mb-6">
+        <div className="relative flex-1">
+          <input 
+            type="text" 
+            placeholder="ค้นหาชื่อหนังสือ, ผู้แต่ง..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-bg-secondary border border-border-main rounded-md pl-10 pr-4 py-2.5 focus:outline-none focus:border-accent text-sm"
+          />
+          <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-text-main/50" />
+        </div>
+        <button
+          onClick={() => setMobileFilterOpen(true)}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-md border text-sm font-medium transition-colors ${
+            activeFilterCount > 0 ? 'bg-accent text-bg-main border-accent' : 'border-border-main bg-bg-secondary text-text-main'
+          }`}
+        >
+          <SlidersHorizontal className="w-4 h-4" />
+          <span>ตัวกรอง</span>
+          {activeFilterCount > 0 && (
+            <span className="bg-bg-main text-accent text-xs px-1.5 py-0.2 rounded-full font-bold">
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
+      </div>
+
+      <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
+        {/* Desktop Sidebar Filters */}
+        <aside className="hidden lg:block w-64 flex-shrink-0">
           <div className="sticky top-28 flex flex-col gap-8">
             
             {/* Search */}
@@ -248,6 +277,113 @@ export default function BrowsePage() {
 
           </div>
         </aside>
+
+        {/* Mobile Filter Modal / Drawer */}
+        {mobileFilterOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden flex justify-end">
+            <div 
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={() => setMobileFilterOpen(false)}
+            />
+            <div className="relative w-4/5 max-w-sm bg-bg-main h-full z-10 shadow-2xl flex flex-col p-6 overflow-y-auto">
+              <div className="flex items-center justify-between pb-4 border-b border-border-main mb-6">
+                <div className="flex items-center gap-2 font-heading text-lg font-medium">
+                  <SlidersHorizontal className="w-5 h-5 text-accent" /> ตัวกรองหนังสือ
+                </div>
+                <button 
+                  onClick={() => setMobileFilterOpen(false)}
+                  className="p-1 rounded-md text-text-main/60 hover:text-text-main"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Filter contents inside mobile drawer */}
+              <div className="flex flex-col gap-6 flex-1">
+                <div>
+                  <h3 className="font-medium text-sm text-text-main/80 uppercase tracking-widest mb-3">หมวดหมู่</h3>
+                  <div className="flex flex-col gap-2.5">
+                    {Object.keys(CATEGORY_TAG_MAP).map(cat => (
+                      <label key={cat} className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedCategories.includes(cat)}
+                          onChange={() => toggleCategory(cat)}
+                          className="w-4 h-4 rounded-sm border-border-main text-accent focus:ring-accent accent-accent"
+                        />
+                        <span className="text-sm text-text-main/80">{cat}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="border-t border-border-main/50 pt-4">
+                  <h3 className="font-medium text-sm text-text-main/80 uppercase tracking-widest mb-3">สภาพหนังสือ</h3>
+                  <div className="flex flex-col gap-2.5">
+                    {Object.entries(CONDITION_MAP).map(([eng, th]) => (
+                      <label key={eng} className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedConditions.includes(eng)}
+                          onChange={() => toggleCondition(eng)}
+                          className="w-4 h-4 rounded-sm border-border-main text-accent focus:ring-accent accent-accent"
+                        />
+                        <span className="text-sm text-text-main/80">{th}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="border-t border-border-main/50 pt-4">
+                  <h3 className="font-medium text-sm text-text-main/80 uppercase tracking-widest mb-3">สถานะ</h3>
+                  <div className="flex flex-col gap-2.5">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={showAvailable}
+                        onChange={() => { setShowAvailable(!showAvailable); setPage(1); }}
+                        className="w-4 h-4 rounded-sm border-border-main text-accent focus:ring-accent accent-accent"
+                      />
+                      <span className="text-sm text-text-main/80">พร้อมแลก (Available)</span>
+                    </label>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={showRare}
+                        onChange={() => { setShowRare(!showRare); setPage(1); }}
+                        className="w-4 h-4 rounded-sm border-border-main text-accent focus:ring-accent accent-accent"
+                      />
+                      <span className="text-sm text-text-main/80">หายาก (Rare / Out of Print)</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mobile Drawer Bottom Action */}
+              <div className="pt-6 border-t border-border-main flex gap-3 mt-6">
+                {activeFilterCount > 0 && (
+                  <button
+                    onClick={() => {
+                      setSelectedCategories([]);
+                      setSelectedConditions([]);
+                      setShowAvailable(false);
+                      setShowRare(false);
+                    }}
+                    className="flex-1 py-2.5 border border-border-main rounded-md text-sm font-medium hover:bg-bg-secondary text-text-main"
+                  >
+                    ล้างตัวกรอง
+                  </button>
+                )}
+                <button
+                  onClick={() => setMobileFilterOpen(false)}
+                  className="flex-1 py-2.5 bg-accent text-bg-main rounded-md text-sm font-medium hover:bg-accent/90"
+                >
+                  ดู {filteredBooks.length} เล่ม
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Main Content Area */}
         <main className="flex-1">

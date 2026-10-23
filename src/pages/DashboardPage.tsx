@@ -284,38 +284,40 @@ export default function DashboardPage() {
                   <div className="border-t border-border-main px-6 pb-6 pt-2 bg-bg-main">
                     
                     {/* Stepper */}
-                    <div className="relative pt-6 pb-8">
-                      <div className="absolute top-[38px] left-8 right-8 h-[2px] bg-border-main" />
-                      <div
-                        className="absolute top-[38px] left-8 h-[2px] bg-accent transition-all duration-500"
-                        style={{ width: `${(stepIdx / (ORDER_STEPS.length - 1)) * 82}%` }}
-                      />
-                      <div className="relative flex justify-between w-full">
-                        {ORDER_STEPS.map((step, index) => {
-                          const isActive = index <= stepIdx;
-                          const isCurrent = index === stepIdx;
-                          const StepIcon = step.icon;
-                          return (
-                            <div key={index} className="flex flex-col items-center gap-2 z-10 w-28 text-center">
-                              <div
-                                className={`w-8 h-8 rounded-full border bg-bg-main flex items-center justify-center transition-colors ${
-                                  isActive
-                                    ? 'border-accent text-accent font-medium shadow-sm'
-                                    : 'border-border-main text-text-main/30'
-                                } ${isCurrent ? 'ring-4 ring-accent/15' : ''}`}
-                              >
-                                <StepIcon className="w-4 h-4" />
+                    <div className="pt-6 pb-6 overflow-x-auto">
+                      <div className="relative min-w-[340px] px-2">
+                        <div className="absolute top-[16px] left-8 right-8 h-[2px] bg-border-main" />
+                        <div
+                          className="absolute top-[16px] left-8 h-[2px] bg-accent transition-all duration-500"
+                          style={{ width: `${(stepIdx / (ORDER_STEPS.length - 1)) * 82}%` }}
+                        />
+                        <div className="relative flex justify-between w-full">
+                          {ORDER_STEPS.map((step, index) => {
+                            const isActive = index <= stepIdx;
+                            const isCurrent = index === stepIdx;
+                            const StepIcon = step.icon;
+                            return (
+                              <div key={index} className="flex flex-col items-center gap-2 z-10 w-20 sm:w-28 text-center">
+                                <div
+                                  className={`w-8 h-8 rounded-full border bg-bg-main flex items-center justify-center transition-colors ${
+                                    isActive
+                                      ? 'border-accent text-accent font-medium shadow-sm'
+                                      : 'border-border-main text-text-main/30'
+                                  } ${isCurrent ? 'ring-4 ring-accent/15' : ''}`}
+                                >
+                                  <StepIcon className="w-4 h-4" />
+                                </div>
+                                <span
+                                  className={`text-[10px] sm:text-xs font-medium leading-tight ${
+                                    isActive ? 'text-text-main' : 'text-text-main/40'
+                                  }`}
+                                >
+                                  {step.label}
+                                </span>
                               </div>
-                              <span
-                                className={`text-xs font-medium ${
-                                  isActive ? 'text-text-main' : 'text-text-main/40'
-                                }`}
-                              >
-                                {step.label}
-                              </span>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
 

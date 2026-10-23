@@ -9,28 +9,28 @@ export default function LandingPage() {
   return (
     <div className="w-full">
       {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-6 md:px-12 py-20 md:py-32 grid md:grid-cols-12 gap-12 lg:gap-20 items-center">
-        <div className="md:col-span-6 lg:col-span-5 flex flex-col items-start gap-9">
-          <h1 className="text-5xl lg:text-7xl leading-[1.25] font-heading font-medium">
+      <section className="max-w-7xl mx-auto px-5 sm:px-6 md:px-12 py-12 sm:py-16 md:py-32 grid md:grid-cols-12 gap-8 lg:gap-20 items-center">
+        <div className="md:col-span-6 lg:col-span-5 flex flex-col items-start gap-6 sm:gap-9">
+          <h1 className="text-3xl sm:text-5xl lg:text-7xl leading-[1.2] font-heading font-medium">
             เรื่องราวดีๆ มีไว้ให้ <span className="italic text-accent">แบ่งปัน</span> ไม่ใช่แค่เก็บบนชั้น
           </h1>
 
-          <div className="text-lg text-text-main/80 leading-relaxed font-sans">
+          <div className="text-base sm:text-lg text-text-main/80 leading-relaxed font-sans">
             ร่วมเป็นส่วนหนึ่งกับนักอ่านกว่า <span className="font-semibold text-text-main">12,000 คน</span> ในคอมมูนิตี้ร้านหนังสืออิสระของเรา
             เราได้ช่วยส่งต่อหนังสือที่รักไปแล้วกว่า <span className="font-semibold text-text-main">45,000 เล่ม</span> ตั้งแต่เริ่มก่อตั้ง
           </div>
 
-          <div className="flex flex-wrap items-center gap-4">
-            <Link to="/browse" className="bg-accent text-bg-main px-6 py-3.5 rounded-md font-medium text-base hover:bg-accent/90 transition-colors flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row w-full sm:w-auto items-stretch sm:items-center gap-3 sm:gap-4">
+            <Link to="/browse" className="bg-accent text-bg-main px-6 py-3.5 rounded-md font-medium text-base hover:bg-accent/90 transition-colors flex items-center justify-center gap-2">
               ค้นหาหนังสือแลก <ArrowRight className="w-4 h-4" />
             </Link>
-            <Link to="/marketplace" className="border border-border-main bg-bg-main text-text-main px-6 py-3.5 rounded-md font-medium text-base hover:border-accent hover:text-accent transition-colors flex items-center gap-2">
+            <Link to="/marketplace" className="border border-border-main bg-bg-main text-text-main px-6 py-3.5 rounded-md font-medium text-base hover:border-accent hover:text-accent transition-colors flex items-center justify-center gap-2">
               หนังสือมือสอง <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </div>
 
-        <div className="md:col-span-6 lg:col-span-7 relative h-[400px] sm:h-[500px] lg:h-[600px] w-full mt-10 md:mt-0">
+        <div className="md:col-span-6 lg:col-span-7 relative h-[280px] sm:h-[420px] lg:h-[600px] w-full mt-4 md:mt-0">
           {/* Editorial Style Image Composition */}
           <div className="absolute top-0 right-0 w-4/5 h-4/5 border border-border-main rounded-md overflow-hidden z-10">
             <img

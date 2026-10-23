@@ -122,16 +122,16 @@ export default function RequestsPage() {
               setIsAuthAlertOpen(true);
             }
           }}
-          className="flex-shrink-0 bg-accent text-bg-main px-6 py-4 rounded-md font-medium text-lg hover:bg-accent/90 transition-colors flex items-center justify-center gap-2 shadow-sm"
+          className="w-full sm:w-auto flex-shrink-0 bg-accent text-bg-main px-5 py-3 sm:px-6 sm:py-4 rounded-md font-medium text-base sm:text-lg hover:bg-accent/90 transition-colors flex items-center justify-center gap-2 shadow-sm"
         >
           <PlusCircle className="w-5 h-5" /> ตั้งกระทู้ตามหาหนังสือ
         </button>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-8">
+      <div className="flex flex-col md:flex-row gap-6 md:gap-8">
         {/* Sidebar / Filters */}
         <div className="w-full md:w-64 flex-shrink-0">
-          <div className="relative mb-6">
+          <div className="relative mb-4 md:mb-6">
             <input 
               type="text" 
               placeholder="ค้นหาชื่อหนังสือ..." 
@@ -142,10 +142,10 @@ export default function RequestsPage() {
             <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-text-main/50" />
           </div>
           
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-row md:flex-col gap-2">
             <button 
               onClick={() => { setFilterMine(false); setPage(1); }}
-              className={`text-left text-sm font-medium px-4 py-2 rounded-md transition-colors ${!filterMine ? 'text-accent bg-accent/10' : 'text-text-main/70 hover:bg-bg-secondary'}`}
+              className={`flex-1 md:flex-none text-center md:text-left text-sm font-medium px-4 py-2 rounded-md transition-colors ${!filterMine ? 'text-accent bg-accent/10 border border-accent/20' : 'text-text-main/70 hover:bg-bg-secondary border border-border-main/50 md:border-transparent'}`}
             >
               กระทู้ทั้งหมด
             </button>
@@ -157,7 +157,7 @@ export default function RequestsPage() {
                 }
                 setFilterMine(true); setPage(1); 
               }}
-              className={`text-left text-sm font-medium px-4 py-2 rounded-md transition-colors ${filterMine ? 'text-accent bg-accent/10' : 'text-text-main/70 hover:bg-bg-secondary'}`}
+              className={`flex-1 md:flex-none text-center md:text-left text-sm font-medium px-4 py-2 rounded-md transition-colors ${filterMine ? 'text-accent bg-accent/10 border border-accent/20' : 'text-text-main/70 hover:bg-bg-secondary border border-border-main/50 md:border-transparent'}`}
             >
               กระทู้ของฉัน
             </button>
