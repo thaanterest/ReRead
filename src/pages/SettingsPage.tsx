@@ -50,17 +50,44 @@ export default function SettingsPage() {
   const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Check file size (max 4MB)
-      if (file.size > 4 * 1024 * 1024) {
-        setProfileMsg({ type: 'error', text: 'ขนาดไฟล์ภาพต้องไม่เกิน 4MB ค่ะ' });
+      if (file.size > 10 * 1024 * 1024) {
+        setProfileMsg({ type: 'error', text: 'ขนาดไฟล์ภาพต้องไม่เกิน 10MB ค่ะ' });
         return;
       }
+
       const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          setAvatarUrl(reader.result);
-          setProfileMsg({ type: 'success', text: 'เลือกรูปภาพเรียบร้อยแล้ว อย่าลืมกด "บันทึกการเปลี่ยนแปลง" นะคะ' });
-        }
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          // Resize avatar to maximum 250x250 for crisp profile quality and small data size
+          const canvas = document.createElement('canvas');
+          const maxDim = 250;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+            setAvatarUrl(compressedBase64);
+            setProfileMsg({ type: 'success', text: 'เลือกรูปภาพเรียบร้อยแล้ว อย่าลืมกด "บันทึกการเปลี่ยนแปลง" นะคะ' });
+          }
+        };
+        img.src = event.target?.result as string;
       };
       reader.readAsDataURL(file);
     }
